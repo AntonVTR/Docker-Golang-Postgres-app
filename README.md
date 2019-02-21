@@ -12,7 +12,7 @@ connect to the DB
 `docker exec -it file_data_storage psql -U postgres`
 
 the init.sql script is  
-create database sometest;  
+`create database sometest;  
 \connect sometest;  
 CREATE TABLE files_data(
    id SERIAL PRIMARY KEY,
@@ -21,4 +21,4 @@ CREATE TABLE files_data(
    fsize INT,
    fdate TIMESTAMPTZ
 );  
-INSERT INTO files_data(name,ext,fsize)VALUES('test','txt',20)
+INSERT INTO files_data(name,ext,fsize)VALUES('test','txt',20)`
