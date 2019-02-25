@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
+	times "gopkg.in/djherbis/times.v1"
 )
 
 const (
@@ -18,6 +20,8 @@ const (
 	dbname   = "files_data"
 )
 
+//var db *sql.DB
+
 func main() {
 	//PArams
 	pathStr := flag.String("path", ".", "Path to the traking folder")
@@ -27,6 +31,7 @@ func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 	//Connect to DB
+	//var err error
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		panic(err)
@@ -74,17 +79,8 @@ func main() {
 
 		for _, file := range files {
 			if !file.IsDir() {
-				row := db.QueryRow("SELECT name FROM files_data WHERE name=$1", file.Name())
-				id := 0
-				err := row.Scan(&id)
-				if err == sql.ErrNoRows {
+				SaveToDb(db, file, sqlStatement)
 
-					//fmt.Println(row)
-					_, err := db.Exec(sqlStatement, file.Name(), file.Size(), file.ModTime())
-					if err != nil {
-						panic(err)
-					}
-				}
 			} else if err != nil {
 				fmt.Print(err)
 			}
@@ -109,4 +105,22 @@ func main() {
 			fmt.Printf("%s \n", name)
 		} //end of for loop
 	}
+}
+
+func SaveToDb(db *sql.DB, file os.FileInfo, sqlStatement string) {
+	row := db.QueryRow("SELECT name FROM files_data WHERE name=$1", file.Name())
+	id := 0
+	err := row.Scan(&id)
+	if err == sql.ErrNoRows {
+		t, err := times.Stat(file.Name())
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		//fmt.Println(row)
+		_, err = db.Exec(sqlStatement, file.Name(), file.Size(), t.BirthTime())
+		if err != nil {
+			panic(err)
+		}
+	}
+
 }
