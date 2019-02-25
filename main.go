@@ -7,17 +7,18 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 
 	_ "github.com/lib/pq"
-	times "gopkg.in/djherbis/times.v1"
 )
 
 const (
-	host     = "127.0.0.1"
-	port     = 5432
-	user     = "postgres"
-	password = "password1"
-	dbname   = "files_data"
+	host         = "127.0.0.1"
+	port         = 5432
+	user         = "postgres"
+	password     = "password1"
+	dbname       = "files_data"
+	goroutineNum = 3
 )
 
 //var db *sql.DB
@@ -76,17 +77,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		inputFile := make(chan os.FileInfo, 1)
+		for i := 0; i < goroutineNum; i++ {
+			go SaveToDb(db, sqlStatement, inputFile)
+		}
 		for _, file := range files {
 			if !file.IsDir() {
-				SaveToDb(db, file, sqlStatement)
-
+				inputFile <- file
 			} else if err != nil {
 				fmt.Print(err)
 			}
 
 		}
-
+		close(inputFile)
+		//time.Sleep(time.Milliseconds)
 		rows, err := db.Query("SELECT * FROM files_data")
 		if err != nil {
 			panic(err)
@@ -107,20 +111,20 @@ func main() {
 	}
 }
 
-func SaveToDb(db *sql.DB, file os.FileInfo, sqlStatement string) {
-	row := db.QueryRow("SELECT name FROM files_data WHERE name=$1", file.Name())
-	id := 0
-	err := row.Scan(&id)
-	if err == sql.ErrNoRows {
-		t, err := times.Stat(file.Name())
-		if err != nil {
-			log.Fatal(err.Error())
+func SaveToDb(db *sql.DB, sqlStatement string, in <-chan os.FileInfo) {
+	for file := range in {
+
+		row := db.QueryRow("SELECT name FROM files_data WHERE name=$1", file.Name())
+		fmt.Println(file.Name())
+		id := 0
+		err := row.Scan(&id)
+		if err == sql.ErrNoRows {
+			_, err = db.Exec(sqlStatement, file.Name(), file.Size(), file.ModTime())
+			if err != nil {
+				panic(err)
+			}
 		}
-		//fmt.Println(row)
-		_, err = db.Exec(sqlStatement, file.Name(), file.Size(), t.BirthTime())
-		if err != nil {
-			panic(err)
-		}
+		runtime.Gosched()
 	}
 
 }
