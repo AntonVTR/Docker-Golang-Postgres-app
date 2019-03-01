@@ -4,11 +4,11 @@ docker exec -it file_data_storage psql -U postgres
 */
 create database files_data;
 \connect files_data;
-CREATE TABLE files_data(
+/* CREATE TABLE files_data(
    id SERIAL PRIMARY KEY,
    name VARCHAR,
    fsize INT,
    fdate VARCHAR
 );
 
-INSERT INTO files_data(name,fsize)VALUES('test',20)
+INSERT INTO files_data(name,fsize)VALUES('test',20) */
