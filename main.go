@@ -115,7 +115,7 @@ func SaveToDb(db *sql.DB, sqlStatement string, in <-chan os.FileInfo) {
 	for file := range in {
 
 		row := db.QueryRow("SELECT name FROM files_data WHERE name=$1", file.Name())
-		fmt.Println(file.Name())
+		//fmt.Println(file.Name())
 		id := 0
 		err := row.Scan(&id)
 		if err == sql.ErrNoRows {
